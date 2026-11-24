@@ -1,0 +1,6 @@
+# Python / ML
+ml/.venv/
+ml/data/**/*.npy
+ml/models/logs/
+__pycache__/
+*.pyc

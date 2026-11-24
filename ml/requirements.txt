@@ -1,0 +1,8 @@
+# Pipeline de entrenamiento (100% gratuito / open source)
+# Recomendado: Python 3.10 - 3.11 (mediapipe y tensorflow aún no soportan bien versiones más nuevas)
+mediapipe==0.10.14
+tensorflow==2.16.1
+opencv-python==4.10.0.84
+numpy>=1.26,<2.0
+scikit-learn==1.5.1
+matplotlib==3.9.0
