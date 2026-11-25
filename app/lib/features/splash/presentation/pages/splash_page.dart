@@ -92,7 +92,7 @@ class _SplashPageState extends State<SplashPage> with SingleTickerProviderStateM
                             value: v,
                             minHeight: 6,
                             backgroundColor: AppColors.surfaceLight,
-                            valueColor: const AlwaysStoppedAnimation(AppColors.secondary),
+                            valueColor: AlwaysStoppedAnimation(AppColors.secondary),
                           ),
                         ),
                       ),

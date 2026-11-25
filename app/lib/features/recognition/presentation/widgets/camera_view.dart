@@ -63,7 +63,7 @@ class _Placeholder extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return DecoratedBox(
-      decoration: const BoxDecoration(
+      decoration: BoxDecoration(
         gradient: LinearGradient(
           colors: [AppColors.surfaceLight, AppColors.background],
           begin: Alignment.topCenter,
@@ -76,7 +76,7 @@ class _Placeholder extends StatelessWidget {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Icon(Icons.videocam_off_rounded, size: 48, color: AppColors.textSecondary),
+              Icon(Icons.videocam_off_rounded, size: 48, color: AppColors.textSecondary),
               const SizedBox(height: 12),
               Text(
                 message ?? 'Cámara no disponible',

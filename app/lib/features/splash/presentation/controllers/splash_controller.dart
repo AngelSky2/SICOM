@@ -52,7 +52,7 @@ class SplashController extends ChangeNotifier {
         r.fold((f) => _warnings.add(f.message), (_) {});
       }),
       (
-        AppConstants.hasTrainedModel ? 'Cargando modelo LSTM…' : 'Buscando modelo LSTM…',
+        'Cargando modelo de reconocimiento…',
         () async {
           final r = await _loadModel();
           r.fold((f) => _warnings.add(f.message), (_) {});

@@ -52,7 +52,7 @@ class HistoryPage extends StatelessWidget {
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      const Icon(Icons.history_toggle_off_rounded, size: 64, color: AppColors.textSecondary),
+                      Icon(Icons.history_toggle_off_rounded, size: 64, color: AppColors.textSecondary),
                       const SizedBox(height: 12),
                       Text('Aún no hay frases guardadas', style: theme.textTheme.bodyLarge),
                     ],
@@ -92,7 +92,7 @@ class HistoryPage extends StatelessWidget {
                             ),
                             IconButton(
                               tooltip: 'Reproducir',
-                              icon: const Icon(Icons.play_circle_fill_rounded, color: AppColors.secondary, size: 32),
+                              icon: Icon(Icons.play_circle_fill_rounded, color: AppColors.secondary, size: 32),
                               onPressed: () => sl<SpeakTextUseCase>()(e.text),
                             ),
                           ],

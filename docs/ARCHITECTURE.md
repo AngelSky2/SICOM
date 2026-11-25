@@ -1,4 +1,4 @@
-# Arquitectura de SeñaVoz
+# Arquitectura de SICOM
 
 ## 1. Visión general
 

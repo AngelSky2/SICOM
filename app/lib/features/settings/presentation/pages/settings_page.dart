@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../../../../core/constants/app_constants.dart';
+import '../../../../core/theme/app_colors.dart';
 import '../../../../shared/widgets/glass_card.dart';
 import '../../../../shared/widgets/gradient_background.dart';
 import '../controllers/settings_controller.dart';
@@ -44,6 +45,24 @@ class SettingsPage extends StatelessWidget {
           child: ListView(
             padding: const EdgeInsets.all(20),
             children: [
+              section('Apariencia', [
+                const Text('Tema de color'),
+                const SizedBox(height: 10),
+                Row(
+                  children: [
+                    for (final t in AppThemeColor.values) ...[
+                      Expanded(
+                        child: _ThemeOption(
+                          theme: t,
+                          selected: s.themeColor == t,
+                          onTap: () => controller.update((s) => s.copyWith(themeColor: t)),
+                        ),
+                      ),
+                      if (t != AppThemeColor.values.last) const SizedBox(width: 12),
+                    ],
+                  ],
+                ),
+              ]),
               section('Voz (Text-to-Speech)', [
                 DropdownButtonFormField<String>(
                   initialValue: _languages.containsKey(s.ttsLanguage) ? s.ttsLanguage : 'es-MX',
@@ -106,13 +125,55 @@ class SettingsPage extends StatelessWidget {
                   contentPadding: EdgeInsets.zero,
                   leading: const Icon(Icons.info_outline_rounded),
                   title: const Text('${AppConstants.appName} v1.0.0'),
-                  subtitle: Text(AppConstants.hasTrainedModel
-                      ? 'MediaPipe Hands + LSTM (TFLite) en el dispositivo'
-                      : 'MediaPipe Hands · modelo LSTM pendiente de entrenar'),
+                  subtitle: const Text('Reconocimiento de señas en el dispositivo'),
                 ),
               ]),
             ],
           ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Tarjeta para elegir un tema: muestra su degradado y una marca si está activo.
+class _ThemeOption extends StatelessWidget {
+  const _ThemeOption({required this.theme, required this.selected, required this.onTap});
+
+  final AppThemeColor theme;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final p = AppPalette.of(theme);
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(16),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: const EdgeInsets.all(10),
+        decoration: BoxDecoration(
+          color: p.background,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: selected ? p.primary : Colors.white.withValues(alpha: 0.12),
+            width: selected ? 2.5 : 1,
+          ),
+        ),
+        child: Column(
+          children: [
+            Container(
+              height: 36,
+              decoration: BoxDecoration(
+                gradient: LinearGradient(colors: [p.primary, p.secondary]),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: selected ? const Icon(Icons.check_rounded, color: Colors.white) : null,
+            ),
+            const SizedBox(height: 8),
+            Text(theme.label, style: TextStyle(color: selected ? Colors.white : p.textSecondary)),
+          ],
         ),
       ),
     );

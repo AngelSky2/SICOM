@@ -1,9 +1,9 @@
-# SeñaVoz — Traductor de lengua de señas en tiempo real
+# SICOM — Traductor de lengua de señas en tiempo real
 
 > **Tus manos tienen voz.** App móvil que reconoce lengua de señas con la cámara del celular
 > y la convierte en voz, pensada para personas sordas o con dificultades del habla.
 
-SeñaVoz usa **MediaPipe Hands** para detectar los 21 puntos de cada mano, una red **LSTM**
+SICOM usa **MediaPipe Hands** para detectar los 21 puntos de cada mano, una red **LSTM**
 (TensorFlow Lite) para clasificar la secuencia de movimientos como una seña, y **flutter_tts**
 para decir la palabra en voz alta. **Todo corre dentro del teléfono**: sin servidor, sin internet
 y con herramientas 100 % gratuitas y open source.
@@ -151,7 +151,7 @@ lib/
 │   ├── services/
 │   │   └── camera_service.dart   Único dueño del CameraController (abrir, cambiar, cerrar)
 │   ├── theme/
-│   │   ├── app_colors.dart       Paleta de colores y degradados
+│   │   ├── app_colors.dart       Temas de color (Azul / Verde), paletas y degradados
 │   │   └── app_theme.dart        Tema oscuro de Material 3
 │   └── utils/
 │       └── result.dart           Result<T> = Success(valor) | Error(Failure)
@@ -305,7 +305,7 @@ llega de Kotlin (`fromMap`); el resto de la app solo trabaja con la *entidad* `H
 #### `features/dictionary/` — Diccionario
 | Archivo | Qué hace |
 |---------|----------|
-| `domain/entities/sign_entry.dart` | Seña: etiqueta, título, emoji, categoría, descripción y pasos. |
+| `domain/entities/sign_entry.dart` | Seña: etiqueta, título, categoría, descripción y pasos. |
 | `data/datasources/dictionary_local_datasource.dart` | Catálogo de las 8 señas iniciales (hola, gracias, por favor, sí, no, ayuda, agua, te quiero). |
 | `data/repositories/dictionary_repository_impl.dart` | Lista completa y búsqueda por nombre o categoría. |
 | `presentation/pages/dictionary_page.dart` | Buscador y cuadrícula de señas. |
@@ -322,10 +322,12 @@ llega de Kotlin (`fromMap`); el resto de la app solo trabaja con la *entidad* `H
 #### `features/settings/` — Ajustes
 | Archivo | Qué hace |
 |---------|----------|
-| `domain/entities/app_settings.dart` | Idioma, velocidad, tono, voz automática, mostrar puntos y confianza mínima. |
+| `domain/entities/app_settings.dart` | Idioma, velocidad, tono, voz automática, mostrar puntos, confianza mínima y tema de color. |
 | `data/repositories/settings_repository_impl.dart` | Lee y guarda los ajustes en `shared_preferences`. |
 | `presentation/controllers/settings_controller.dart` | Cambia ajustes, los guarda y reconfigura la voz al instante. Tiene "Probar voz". |
-| `presentation/pages/settings_page.dart` | Pantalla de ajustes por secciones. |
+| `presentation/pages/settings_page.dart` | Pantalla de ajustes por secciones: Apariencia (tema Azul o Verde), Voz, Reconocimiento y Acerca de. |
+
+**Cambio de tema:** `AppColors` (en `core/theme/app_colors.dart`) lee la paleta activa. Al elegir un tema, `SettingsController` lo guarda, `app.dart` llama a `AppColors.apply()`, reconstruye el `ThemeData` y repinta todas las pantallas abiertas. Los ajustes se cargan en `main.dart` antes de dibujar, para que el splash ya salga con el tema elegido.
 
 ### 5.4 Rutas
 

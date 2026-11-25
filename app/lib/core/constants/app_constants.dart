@@ -1,5 +1,5 @@
 abstract final class AppConstants {
-  static const String appName = 'SeñaVoz';
+  static const String appName = 'SICOM';
   static const String appTagline = 'Tus manos tienen voz';
 
   /// `true` = detecta tus manos reales con MediaPipe (código nativo en Kotlin).

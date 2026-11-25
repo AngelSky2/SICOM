@@ -5,7 +5,6 @@ import '../../../../core/constants/app_constants.dart';
 import '../../../../core/router/app_routes.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../shared/widgets/app_logo.dart';
-import '../../../../shared/widgets/glass_card.dart';
 import '../../../../shared/widgets/gradient_background.dart';
 import '../../../history/presentation/controllers/history_controller.dart';
 import '../widgets/feature_tile.dart';
@@ -76,24 +75,6 @@ class HomePage extends StatelessWidget {
                   ),
                 ],
               ),
-              if (!AppConstants.hasTrainedModel) ...[
-                const SizedBox(height: 16),
-                GlassCard(
-                  child: Row(
-                    children: [
-                      const Icon(Icons.science_rounded, color: AppColors.accent),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Text(
-                          'Detección de manos activa (MediaPipe). Aún no hay modelo LSTM '
-                          'entrenado, así que todavía no traduce señas a palabras.',
-                          style: theme.textTheme.bodySmall,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
             ],
           ),
         ),
@@ -113,7 +94,7 @@ class _StartCard extends StatelessWidget {
       borderRadius: BorderRadius.circular(24),
       clipBehavior: Clip.antiAlias,
       child: Ink(
-        decoration: const BoxDecoration(gradient: AppColors.brandGradient),
+        decoration: BoxDecoration(gradient: AppColors.brandGradient),
         child: InkWell(
           onTap: onTap,
           child: Padding(

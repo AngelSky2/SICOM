@@ -64,7 +64,7 @@ class _DictionaryPageState extends State<DictionaryPage> {
                             child: Column(
                               mainAxisAlignment: MainAxisAlignment.center,
                               children: [
-                                Text(s.emoji, style: const TextStyle(fontSize: 44)),
+                                Icon(Icons.sign_language_rounded, size: 44, color: AppColors.secondary),
                                 const SizedBox(height: 10),
                                 Text(s.title, style: theme.textTheme.titleMedium),
                                 Text(s.category, style: theme.textTheme.bodySmall),

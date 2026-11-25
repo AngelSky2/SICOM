@@ -26,9 +26,9 @@ class TranscriptPanel extends StatelessWidget {
 
     return Container(
       padding: const EdgeInsets.fromLTRB(20, 18, 20, 12),
-      decoration: const BoxDecoration(
+      decoration: BoxDecoration(
         color: AppColors.surface,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
       ),
       child: SafeArea(
         top: false,

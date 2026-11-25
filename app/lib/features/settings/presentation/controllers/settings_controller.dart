@@ -32,5 +32,5 @@ class SettingsController extends ChangeNotifier {
     if (ttsChanged) await _configureTts(_settings.ttsConfig);
   }
 
-  Future<void> testVoice() => _speak('Hola, esta es la voz de SeñaVoz');
+  Future<void> testVoice() => _speak('Hola, esta es la voz de SICOM');
 }

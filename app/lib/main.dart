@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 
 import 'app.dart';
 import 'core/di/injection_container.dart';
+import 'features/settings/presentation/controllers/settings_controller.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -13,5 +14,7 @@ Future<void> main() async {
   ));
 
   await initDependencies();
-  runApp(const SenaVozApp());
+  // Se cargan antes de dibujar para que el splash ya salga con el tema elegido.
+  await sl<SettingsController>().load();
+  runApp(const SicomApp());
 }

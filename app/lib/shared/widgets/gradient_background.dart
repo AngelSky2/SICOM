@@ -10,7 +10,7 @@ class GradientBackground extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return DecoratedBox(
-      decoration: const BoxDecoration(gradient: AppColors.backgroundGradient),
+      decoration: BoxDecoration(gradient: AppColors.backgroundGradient),
       child: Stack(
         children: [
           Positioned(top: -120, right: -80, child: _blob(AppColors.primary, 280)),

@@ -58,11 +58,7 @@ class PredictionOverlay extends StatelessWidget {
               duration: const Duration(milliseconds: 200),
               child: p == null
                   ? Text(
-                      !handsVisible
-                          ? 'Muestra tus manos'
-                          : modelReady
-                              ? 'Analizando…'
-                              : 'Mano detectada · falta entrenar la LSTM',
+                      handsVisible ? 'Analizando…' : 'Muestra tus manos',
                       key: ValueKey(handsVisible),
                       style: theme.textTheme.titleMedium?.copyWith(color: AppColors.textSecondary),
                     )

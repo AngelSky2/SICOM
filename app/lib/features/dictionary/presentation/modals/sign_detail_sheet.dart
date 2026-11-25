@@ -37,7 +37,7 @@ class _SignDetailSheet extends StatelessWidget {
                     gradient: AppColors.brandGradient,
                     borderRadius: BorderRadius.circular(20),
                   ),
-                  child: Text(sign.emoji, style: const TextStyle(fontSize: 36)),
+                  child: const Icon(Icons.sign_language_rounded, size: 38, color: Colors.white),
                 ),
                 const SizedBox(width: 16),
                 Expanded(

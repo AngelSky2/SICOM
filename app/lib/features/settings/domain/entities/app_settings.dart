@@ -1,4 +1,5 @@
 import '../../../../core/constants/app_constants.dart';
+import '../../../../core/theme/app_colors.dart';
 import '../../../tts/domain/entities/tts_config.dart';
 
 class AppSettings {
@@ -9,6 +10,7 @@ class AppSettings {
     this.autoSpeak = true,
     this.showLandmarks = true,
     this.confidenceThreshold = AppConstants.defaultConfidenceThreshold,
+    this.themeColor = AppThemeColor.blue,
   });
 
   final String ttsLanguage;
@@ -17,6 +19,7 @@ class AppSettings {
   final bool autoSpeak;
   final bool showLandmarks;
   final double confidenceThreshold;
+  final AppThemeColor themeColor;
 
   TtsConfig get ttsConfig => TtsConfig(language: ttsLanguage, rate: speechRate, pitch: pitch);
 
@@ -27,6 +30,7 @@ class AppSettings {
     bool? autoSpeak,
     bool? showLandmarks,
     double? confidenceThreshold,
+    AppThemeColor? themeColor,
   }) {
     return AppSettings(
       ttsLanguage: ttsLanguage ?? this.ttsLanguage,
@@ -35,6 +39,7 @@ class AppSettings {
       autoSpeak: autoSpeak ?? this.autoSpeak,
       showLandmarks: showLandmarks ?? this.showLandmarks,
       confidenceThreshold: confidenceThreshold ?? this.confidenceThreshold,
+      themeColor: themeColor ?? this.themeColor,
     );
   }
 }

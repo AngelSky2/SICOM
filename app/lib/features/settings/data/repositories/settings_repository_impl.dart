@@ -1,5 +1,7 @@
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../../../../core/theme/app_colors.dart';
+
 import '../../domain/entities/app_settings.dart';
 import '../../domain/repositories/settings_repository.dart';
 
@@ -13,6 +15,7 @@ class SettingsRepositoryImpl implements SettingsRepository {
   static const _kAuto = 'settings.autoSpeak';
   static const _kLandmarks = 'settings.showLandmarks';
   static const _kThreshold = 'settings.confidenceThreshold';
+  static const _kTheme = 'settings.themeColor';
 
   @override
   Future<AppSettings> load() async {
@@ -24,6 +27,7 @@ class SettingsRepositoryImpl implements SettingsRepository {
       autoSpeak: _prefs.getBool(_kAuto) ?? d.autoSpeak,
       showLandmarks: _prefs.getBool(_kLandmarks) ?? d.showLandmarks,
       confidenceThreshold: _prefs.getDouble(_kThreshold) ?? d.confidenceThreshold,
+      themeColor: AppThemeColor.fromName(_prefs.getString(_kTheme)),
     );
   }
 
@@ -36,6 +40,7 @@ class SettingsRepositoryImpl implements SettingsRepository {
       _prefs.setBool(_kAuto, s.autoSpeak),
       _prefs.setBool(_kLandmarks, s.showLandmarks),
       _prefs.setDouble(_kThreshold, s.confidenceThreshold),
+      _prefs.setString(_kTheme, s.themeColor.name),
     ]);
   }
 }
