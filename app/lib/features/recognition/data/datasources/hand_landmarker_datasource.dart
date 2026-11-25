@@ -29,7 +29,11 @@ class MediaPipeHandLandmarkerDataSource implements HandLandmarkerDataSource {
 
   final CameraService _camera;
   final _controller = StreamController<HandFrameModel>.broadcast();
-  bool _processing = false;
+  /// Frames enviados a MediaPipe que aún no han vuelto. Con 2 en vuelo,
+  /// mientras el nativo detecta uno ya tiene el siguiente esperando y no se
+  /// queda ocioso durante el viaje de ida y vuelta por el canal.
+  int _inFlight = 0;
+  static const _maxInFlight = 2;
 
   @override
   Stream<HandFrameModel> get frames => _controller.stream;
@@ -41,8 +45,8 @@ class MediaPipeHandLandmarkerDataSource implements HandLandmarkerDataSource {
   }
 
   Future<void> _onImage(CameraImage image) async {
-    if (_processing) return; // descarta frames si el anterior sigue en proceso
-    _processing = true;
+    if (_inFlight >= _maxInFlight) return; // descarta frames si va atrasado
+    _inFlight++;
     try {
       final result = await _channel.invokeMapMethod<dynamic, dynamic>('detect', {
         'width': image.width,
@@ -61,7 +65,7 @@ class MediaPipeHandLandmarkerDataSource implements HandLandmarkerDataSource {
     } on PlatformException catch (e) {
       _controller.addError(e);
     } finally {
-      _processing = false;
+      _inFlight--;
     }
   }
 

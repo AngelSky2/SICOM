@@ -34,6 +34,7 @@ y con herramientas 100 % gratuitas y open source.
 | Parte | Estado |
 |-------|--------|
 | App Flutter (pantalla de carga, menú, traductor, diccionario, historial, ajustes) | ✅ Hecha |
+| Tema de color Azul / Verde (en Ajustes) | ✅ Hecho |
 | Arquitectura limpia (domain / data / presentation) + inyección de dependencias | ✅ Hecha |
 | Texto a voz (flutter_tts) | ✅ Funciona |
 | Detección de manos real con MediaPipe (Android, Kotlin) | ✅ Implementada |
@@ -43,23 +44,113 @@ y con herramientas 100 % gratuitas y open source.
 | iOS (lado nativo de MediaPipe) | ❌ Pendiente |
 
 > Mientras no exista el modelo entrenado, la app **detecta y dibuja tus manos**, pero **no traduce
-> señas a palabras**. En pantalla aparece *"Mano detectada · falta entrenar la LSTM"*.
+> señas a palabras**.
 
 ---
 
 ## 2. Tecnologías
 
-| Área | Herramienta | Para qué |
-|------|-------------|----------|
-| App móvil | **Flutter / Dart** | Interfaz multiplataforma |
-| Estado | **provider** (`ChangeNotifier`) | Exponer el estado a los widgets |
-| Inyección de dependencias | **get_it** | Construir y conectar todas las clases |
-| Cámara | **camera** | Vista previa y frames en tiempo real |
-| Detección de manos | **MediaPipe Tasks Vision** (`HandLandmarker`) | 21 puntos 3D por mano |
-| Clasificación | **TensorFlow Lite** (`tflite_flutter`) | Ejecutar la LSTM en el celular |
-| Voz | **flutter_tts** | Motor TTS nativo del teléfono |
-| Persistencia | **shared_preferences** | Ajustes e historial |
-| Entrenamiento | **Python + TensorFlow/Keras + MediaPipe + OpenCV** | Dataset y modelo |
+Todo el stack es **gratuito y open source**. Ninguna pieza necesita servidor, cuenta de pago ni
+conexión a internet para funcionar.
+
+### 2.1 Resumen
+
+| Tecnología | Versión | Dónde se usa | Estado |
+|------------|---------|--------------|--------|
+| **Flutter / Dart** | Flutter 3.47 · Dart ^3.13 | Toda la app (`app/lib/`) | 🟢 Funcionando |
+| **MediaPipe Tasks Vision** (`HandLandmarker`) | 0.10.35 (Android) | Código nativo Kotlin | 🟢 Funcionando en Android · 🔴 falta iOS |
+| **TensorFlow Lite** (`tflite_flutter`) | ^0.12.1 | Clasificador de señas en el celular | 🟡 Integrado, esperando el modelo entrenado |
+| **TensorFlow / Keras** (LSTM) | 2.16.1 | Entrenamiento en PC (`ml/`) | 🟡 Scripts listos, falta dataset y entrenar |
+| **MediaPipe (Python)** | 0.10.14 | Extraer puntos al grabar el dataset | 🟢 Listo |
+| **OpenCV** | 4.10 | Webcam al grabar el dataset y probar en PC | 🟢 Listo |
+| **flutter_tts** | ^4.2.5 | Decir las palabras en voz alta | 🟢 Funcionando |
+| **camera** | ^0.12.2 | Vista previa y frames en tiempo real | 🟢 Funcionando |
+| **provider** | ^6.1.5 | Estado de las pantallas | 🟢 Funcionando |
+| **get_it** | ^9.3.0 | Inyección de dependencias | 🟢 Funcionando |
+| **shared_preferences** | ^2.5.6 | Guardar ajustes, tema e historial | 🟢 Funcionando |
+| **Kotlin + Gradle (AGP)** | Kotlin 2.4 · AGP 9.1 · Java 17 | Compilar Android y el puente nativo | 🟢 Funcionando |
+
+🟢 funciona · 🟡 integrado pero incompleto · 🔴 pendiente
+
+### 2.2 Cada tecnología en detalle
+
+#### Flutter / Dart — la app
+- **Qué es:** el framework de Google para hacer apps de Android e iOS con un solo código.
+- **Cómo se usa:** todas las pantallas (splash, inicio, traductor, diccionario, historial,
+  ajustes), el tema Azul/Verde y la lógica de reconocimiento (normalizar puntos, buffer de 30
+  frames, suavizado) están en Dart, dentro de `app/lib/`. El código sigue Clean Architecture:
+  cada funcionalidad se divide en `domain`, `data` y `presentation` (ver sección 5).
+- **Cómo está:** estable. La app compila y corre en un Android real (probada en un Tecno Pova 5 Pro).
+
+#### MediaPipe Hands (`HandLandmarker`) — detectar las manos
+- **Qué es:** un modelo de Google que encuentra hasta 2 manos en una imagen y devuelve
+  **21 puntos 3D** por mano (muñeca, nudillos, puntas de los dedos…).
+- **Cómo se usa:** no hay un plugin oficial de MediaPipe para Flutter, así que se integra
+  **en nativo**:
+  1. Flutter envía cada imagen de la cámara por un `MethodChannel` (`sena_voz/hand_landmarker`).
+  2. `HandLandmarkerChannel.kt` la convierte de YUV a imagen, la gira y la espeja.
+  3. La pasa al modelo `hand_landmarker.task` (en `android/app/src/main/assets/`), en modo VIDEO,
+     intentando primero la GPU y si no la CPU.
+  4. Devuelve a Dart los 63 números de cada mano (21 puntos × x, y, z) y si es la izquierda o la
+     derecha.
+- **Cómo está:** funciona en Android, y los puntos se dibujan sobre la mano en tiempo real.
+  En iOS falta escribir el equivalente en Swift; mientras tanto se puede usar el detector simulado
+  (`useMediaPipe = false`).
+
+#### TensorFlow / Keras + LSTM — aprender las señas (en la PC)
+- **Qué es:** una LSTM es una red neuronal que entiende **secuencias**. Una seña es un movimiento,
+  no una foto, así que la red mira **30 frames seguidos** (~1 segundo) y decide qué seña es.
+- **Cómo se usa (en `ml/src/`):**
+  1. `collect_data.py` graba con la webcam y guarda los puntos de MediaPipe de cada seña (`.npy`).
+  2. `train_lstm.py` entrena la red `LSTM(64) → LSTM(128) → Dense → softmax` con las 8 señas.
+  3. `export_tflite.py` convierte el modelo a `sign_lstm.tflite` y lo copia a la app.
+  4. `realtime_test.py` prueba el modelo con la webcam antes de pasarlo al celular.
+- **Cómo está:** 🟡 **los scripts están listos, pero el modelo aún no está entrenado.** Falta
+  grabar el dataset (recomendado: 30 o más repeticiones por seña) y entrenar. Por eso la app ve las
+  manos pero todavía no traduce señas a palabras.
+
+#### TensorFlow Lite (`tflite_flutter`) — ejecutar la LSTM en el celular
+- **Qué es:** la versión ligera de TensorFlow para móviles.
+- **Cómo se usa:** `TfliteSignClassifierDataSource` carga `assets/models/sign_lstm.tflite` y
+  `labels.txt`, y ejecuta el modelo en un **isolate** (hilo aparte) para que la cámara no se trabe.
+  Corre cada 5 frames sobre la ventana de 30. Después, `PredictionSmoother` solo acepta una palabra
+  si sale **3 veces seguidas** con una confianza mayor al umbral (80 % por defecto).
+- **Cómo está:** 🟡 el código está integrado y probado en su lógica. Se activa poniendo
+  `hasTrainedModel = true` cuando exista el `.tflite`. El modelo se exporta sin capas raras
+  (sin `Masking` y con lote fijo de 1) para que sea compatible con TFLite en el celular.
+
+#### flutter_tts — la voz
+- **Qué es:** usa el motor de texto a voz que ya trae el teléfono (Google TTS en Android).
+- **Cómo se usa:** cuando se acepta una palabra, se dice en voz alta si "Hablar automáticamente"
+  está activado. También se puede reproducir la frase completa o una del historial. En Ajustes se
+  elige el idioma (es-MX, es-ES, es-US, en-US), la velocidad y el tono, y hay un botón "Probar voz".
+- **Cómo está:** 🟢 funciona sin internet si el teléfono tiene descargada la voz en español.
+
+#### camera — la cámara
+- **Cómo se usa:** `CameraService` abre la cámara frontal a resolución media, muestra la vista
+  previa y envía cada frame a MediaPipe. Si un frame aún se está procesando, descarta el siguiente
+  para no acumular retraso. Se puede cambiar entre la cámara frontal y la trasera.
+- **Cómo está:** 🟢 funciona. Los puntos se dibujan dentro del mismo recorte que la vista previa,
+  así quedan justo encima de la mano.
+
+#### provider + get_it — estado y dependencias
+- **get_it** es el "service locator": `core/di/injection_container.dart` es el único lugar que
+  crea las clases concretas y decide qué usar (MediaPipe real o simulado, modelo real o ninguno).
+- **provider** entrega a cada pantalla su controlador (`ChangeNotifier`) y la redibuja cuando
+  cambia algo.
+- **Cómo está:** 🟢 estable. Cambiar una implementación (por ejemplo, poner una API en vez de
+  TFLite) es cambiar una línea en el contenedor.
+
+#### shared_preferences — guardar datos
+- **Cómo se usa:** guarda los ajustes (voz, umbral, puntos, **tema de color**) y el historial de
+  frases en el almacenamiento del teléfono.
+- **Cómo está:** 🟢 funciona. Para mucho historial convendría pasar a una base de datos local
+  como SQLite o Isar (ver la hoja de ruta).
+
+#### Kotlin + Gradle — compilación Android
+- **Cómo se usa:** compilan la app y el puente nativo de MediaPipe. La configuración usa
+  `minSdk 26`, no comprime los archivos `.task` y limita la memoria de Gradle para PCs con ~4 GB de RAM.
+- **Cómo está:** 🟢 compila con **Java 17**. Con Java 26 falla (ver Solución de problemas).
 
 ---
 
@@ -288,7 +379,7 @@ llega de Kotlin (`fromMap`); el resto de la app solo trabaja con la *entidad* `H
 | `presentation/controllers/recognition_controller.dart` | Estado de la pantalla: abre la cámara, inicia la detección, recibe cada frame, agrega palabras a la frase, habla automáticamente, pausa/reanuda, cambia de cámara, borra y guarda en el historial. |
 | `presentation/pages/recognition_page.dart` | Cámara a pantalla completa, tarjeta superior con la predicción, botón de pausa y panel inferior con la traducción. |
 | `presentation/widgets/camera_view.dart` | Vista de la cámara con los puntos de la mano **dentro del mismo recuadro**, para que coincidan exactamente aunque la imagen se recorte. |
-| `presentation/widgets/hand_landmarks_painter.dart` | Dibuja las 21 articulaciones y sus conexiones (verde: mano derecha, naranja: izquierda). |
+| `presentation/widgets/hand_landmarks_painter.dart` | Dibuja las 21 articulaciones y sus conexiones a 60 fps: entre cada detección de MediaPipe los puntos se deslizan con suavizado exponencial (`HandLandmarksOverlay` + `Ticker`), así se ven fluidos y sin temblor. |
 | `presentation/widgets/prediction_overlay.dart` | Anillo de llenado del buffer, seña detectada, barra y porcentaje de confianza. |
 | `presentation/widgets/transcript_panel.dart` | Palabras como chips animados y botones **Borrar última, Limpiar, Guardar y Hablar**. |
 | `presentation/modals/recognition_settings_sheet.dart` | Hoja inferior para ajustar la confianza mínima, la voz automática y los puntos de la mano. |
@@ -511,7 +602,7 @@ Después pon `hasTrainedModel = true` en `app_constants.dart` y ejecuta `flutter
 | `Gradle build daemon disappeared unexpectedly` | Sin RAM (Linux mató el proceso) | Ya ajustado en `gradle.properties` (1,5 GB). Cierra el navegador y otros programas al compilar. |
 | `WARNING: … Kotlin Gradle Plugin (KGP): flutter_tts` | Aviso del plugin | Se puede ignorar. |
 | Muchos `I/flutter (xxxxx)` de otras apps | `flutter run` muestra los registros de todo el celular | Se pueden ignorar. |
-| "Mano detectada · falta entrenar la LSTM" | No hay modelo entrenado | Sigue la [sección 11](#11-entrenar-el-modelo-lstm). |
+| Ve las manos pero no traduce ninguna palabra | No hay modelo entrenado (`hasTrainedModel = false`) | Sigue la [sección 11](#11-entrenar-el-modelo-lstm). |
 
 ---
 

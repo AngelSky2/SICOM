@@ -2,7 +2,6 @@ package com.senavoz.sena_voz
 
 import android.content.Context
 import android.graphics.Bitmap
-import android.graphics.Matrix
 import android.os.Handler
 import android.os.Looper
 import android.os.SystemClock
@@ -38,6 +37,10 @@ class HandLandmarkerChannel(
     private val mainHandler = Handler(Looper.getMainLooper())
     private var landmarker: HandLandmarker? = null
     private var lastTimestamp = 0L
+
+    // Buffers reutilizados entre frames (evita crear memoria 20+ veces por segundo).
+    private var pixels = IntArray(0)
+    private var bitmap: Bitmap? = null
 
     init {
         channel.setMethodCallHandler(this)
@@ -101,8 +104,7 @@ class HandLandmarkerChannel(
         val rowStrides = call.argument<List<Int>>("rowStrides")!!
         val pixelStrides = call.argument<List<Int>>("pixelStrides")!!
 
-        val bitmap = yuvToBitmap(width, height, planes, rowStrides, pixelStrides)
-        val upright = orient(bitmap, rotation, mirror)
+        val upright = yuvToUprightBitmap(width, height, planes, rowStrides, pixelStrides, rotation, mirror)
 
         // VIDEO mode exige timestamps estrictamente crecientes.
         var ts = SystemClock.uptimeMillis()
@@ -133,20 +135,32 @@ class HandLandmarkerChannel(
     }
 
     /**
-     * YUV_420_888 → ARGB. Se reduce a la mitad si la imagen es grande:
-     * MediaPipe trabaja a 224/256 px internamente, así que no se pierde precisión.
+     * YUV_420_888 → ARGB, ya girada a vertical y espejada, en UNA sola pasada.
+     *
+     * Antes se convertía y luego se giraba con otro Bitmap (dos copias por
+     * frame). Ahora cada pixel se escribe directo en su posición final.
+     * Se reduce para que el lado mayor quede en ~360 px: MediaPipe trabaja a
+     * 192/224 px internamente, así que no se pierde precisión.
      */
-    private fun yuvToBitmap(
+    private fun yuvToUprightBitmap(
         width: Int,
         height: Int,
         planes: List<ByteArray>,
         rowStrides: List<Int>,
         pixelStrides: List<Int>,
+        rotationDeg: Int,
+        mirror: Boolean,
     ): Bitmap {
-        val step = if (width > 640) 2 else 1
-        val outW = width / step
-        val outH = height / step
-        val pixels = IntArray(outW * outH)
+        val step = maxOf(1, maxOf(width, height) / 360)
+        val srcW = width / step
+        val srcH = height / step
+        val rotation = ((rotationDeg % 360) + 360) % 360
+        val swap = rotation == 90 || rotation == 270
+        val dstW = if (swap) srcH else srcW
+        val dstH = if (swap) srcW else srcH
+
+        if (pixels.size != dstW * dstH) pixels = IntArray(dstW * dstH)
+        val out = pixels
 
         val y = planes[0]
         val u = planes[1]
@@ -154,37 +168,48 @@ class HandLandmarkerChannel(
         val yRow = rowStrides[0]
         val uvRow = rowStrides[1]
         val uvPixel = pixelStrides[1]
+        val uvMax = minOf(u.size, v.size) - 1
 
-        var idx = 0
-        for (oy in 0 until outH) {
-            val py = oy * step
+        for (sy in 0 until srcH) {
+            val py = sy * step
             val yBase = py * yRow
             val uvBase = (py shr 1) * uvRow
-            for (ox in 0 until outW) {
-                val px = ox * step
-                val yy = (y[yBase + px].toInt() and 0xFF)
-                val uvOff = uvBase + (px shr 1) * uvPixel
-                val uu = (u.getOrElse(uvOff) { 128.toByte() }.toInt() and 0xFF) - 128
-                val vv = (v.getOrElse(uvOff) { 128.toByte() }.toInt() and 0xFF) - 128
+            for (sx in 0 until srcW) {
+                val px = sx * step
+                val yy = y[yBase + px].toInt() and 0xFF
+                val uvOff = minOf(uvBase + (px shr 1) * uvPixel, uvMax)
+                val uu = (u[uvOff].toInt() and 0xFF) - 128
+                val vv = (v[uvOff].toInt() and 0xFF) - 128
 
-                var r = yy + (1.370705f * vv).toInt()
-                var g = yy - (0.337633f * uu + 0.698001f * vv).toInt()
-                var b = yy + (1.732446f * uu).toInt()
-                r = r.coerceIn(0, 255)
-                g = g.coerceIn(0, 255)
-                b = b.coerceIn(0, 255)
-                pixels[idx++] = (0xFF shl 24) or (r shl 16) or (g shl 8) or b
+                var r = yy + ((1404 * vv) shr 10)
+                var g = yy - ((346 * uu + 715 * vv) shr 10)
+                var b = yy + ((1774 * uu) shr 10)
+                r = if (r < 0) 0 else if (r > 255) 255 else r
+                g = if (g < 0) 0 else if (g > 255) 255 else g
+                b = if (b < 0) 0 else if (b > 255) 255 else b
+
+                // Posición final tras girar (horario) y espejar.
+                var dx: Int
+                val dy: Int
+                when (rotation) {
+                    90 -> { dx = srcH - 1 - sy; dy = sx }
+                    180 -> { dx = srcW - 1 - sx; dy = srcH - 1 - sy }
+                    270 -> { dx = sy; dy = srcW - 1 - sx }
+                    else -> { dx = sx; dy = sy }
+                }
+                if (mirror) dx = dstW - 1 - dx
+                out[dy * dstW + dx] = (0xFF shl 24) or (r shl 16) or (g shl 8) or b
             }
         }
-        return Bitmap.createBitmap(pixels, outW, outH, Bitmap.Config.ARGB_8888)
-    }
 
-    private fun orient(src: Bitmap, rotation: Int, mirror: Boolean): Bitmap {
-        if (rotation == 0 && !mirror) return src
-        val m = Matrix()
-        m.postRotate(rotation.toFloat())
-        if (mirror) m.postScale(-1f, 1f)
-        return Bitmap.createBitmap(src, 0, 0, src.width, src.height, m, true)
+        var bmp = bitmap
+        if (bmp == null || bmp.width != dstW || bmp.height != dstH) {
+            bmp?.recycle()
+            bmp = Bitmap.createBitmap(dstW, dstH, Bitmap.Config.ARGB_8888)
+            bitmap = bmp
+        }
+        bmp!!.setPixels(out, 0, dstW, 0, 0, dstW, dstH)
+        return bmp
     }
 
     private fun close() {

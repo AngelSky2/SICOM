@@ -28,7 +28,7 @@ class CameraView extends StatelessWidget {
   Widget build(BuildContext context) {
     final c = controller;
     final overlay = showLandmarks
-        ? RepaintBoundary(child: CustomPaint(painter: HandLandmarksPainter(frame: frame)))
+        ? HandLandmarksOverlay(frame: frame)
         : const SizedBox.shrink();
 
     if (c == null || !c.value.isInitialized) {
